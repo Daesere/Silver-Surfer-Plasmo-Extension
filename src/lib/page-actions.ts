@@ -120,6 +120,118 @@ export function removeClutter(): { success: boolean; message: string; hiddenCoun
 }
 
 /**
+ * Removes suspicious/fraudulent popups and notifies the user via a gentle overlay.
+ */
+export function removeFraudPopups(): { success: boolean; message: string; removedCount: number } {
+  const popupSelectors = [
+    '[role="dialog"]',
+    '[class*="popup"]', '[id*="popup"]',
+    '[class*="modal"]', '[id*="modal"]',
+    '[class*="alert"]', '[id*="alert"]',
+    '[class*="interstitial"]', '[id*="interstitial"]',
+    '[class*="overlay"]', '[id*="overlay"]',
+    '[data-popup="true"]', '[data-modal="true"]'
+  ]
+
+  const suspiciousCopy = [
+    /congratulations/i,
+    /you.?won/i,
+    /winner/i,
+    /urgent/i,
+    /virus/i,
+    /support/i,
+    /refund/i,
+    /call/i,
+    /gift.?card/i,
+    /limited/i
+  ]
+
+  let removedCount = 0
+  const processed = new WeakSet<Element>()
+
+  popupSelectors.forEach((selector) => {
+    document.querySelectorAll(selector).forEach((el) => {
+      if (!(el instanceof HTMLElement) || processed.has(el)) {
+        return
+      }
+
+      processed.add(el)
+
+      const text = el.textContent || ""
+      const matchesCopy = suspiciousCopy.some((regex) => regex.test(text))
+
+      const style = window.getComputedStyle(el)
+      const isAggressivePlacement =
+        style.position === "fixed" &&
+        (parseInt(style.zIndex || "0", 10) >= 1000 || el.getBoundingClientRect().width > window.innerWidth * 0.4)
+
+      if (matchesCopy || isAggressivePlacement) {
+        el.setAttribute("data-silver-surfer-fraud-hidden", "true")
+        el.setAttribute("data-original-display", el.style.display || "")
+        el.style.setProperty("display", "none", "important")
+        removedCount++
+      }
+    })
+  })
+
+  if (removedCount > 0) {
+    showFraudNotice(
+      `Fraudulent popup${removedCount > 1 ? "s" : ""} removed by the Silver Surfer`
+    )
+  }
+
+  return {
+    success: true,
+    message: removedCount > 0 ? `Removed ${removedCount} suspicious popup(s)` : "No fraudulent popups detected",
+    removedCount
+  }
+}
+
+function showFraudNotice(text: string) {
+  const existing = document.getElementById("silver-surfer-fraud-overlay")
+  if (existing) {
+    existing.remove()
+  }
+
+  const overlay = document.createElement("div")
+  overlay.id = "silver-surfer-fraud-overlay"
+  overlay.textContent = text
+  overlay.style.position = "fixed"
+  overlay.style.left = "50%"
+  overlay.style.bottom = "32px"
+  overlay.style.transform = "translateX(-50%)"
+  overlay.style.padding = "12px 18px"
+  overlay.style.borderRadius = "999px"
+  overlay.style.background = "rgba(15, 118, 110, 0.9)"
+  overlay.style.color = "#f0fdfa"
+  overlay.style.fontFamily = '"Bangers", "Comic Sans MS", system-ui'
+  overlay.style.fontSize = "16px"
+  overlay.style.letterSpacing = "0.08em"
+  overlay.style.boxShadow = "0 6px 20px rgba(15, 118, 110, 0.4)"
+  overlay.style.zIndex = "2147483647"
+  overlay.style.opacity = "0"
+  overlay.style.transition = "opacity 300ms ease-out"
+  overlay.style.pointerEvents = "none"
+
+  document.body.appendChild(overlay)
+
+  requestAnimationFrame(() => {
+    overlay.style.opacity = "1"
+  })
+
+  setTimeout(() => {
+    overlay.style.opacity = "0"
+    overlay.addEventListener(
+      "transitionend",
+      () => {
+        overlay.remove()
+      },
+      { once: true }
+    )
+  }, 3500)
+}
+
+/**
  * Restores hidden clutter elements
  */
 export function restoreClutter(): { success: boolean; message: string } {

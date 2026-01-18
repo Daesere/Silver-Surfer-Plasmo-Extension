@@ -96,6 +96,13 @@ export default function TestTab() {
       needsSelector: false
     },
     {
+      name: "Neutralize Fraud Popups",
+      icon: "gpp_maybe",
+      color: "bg-red-100 dark:bg-red-900",
+      action: () => sendToContent("REMOVE_FRAUD_POPUPS"),
+      needsSelector: false
+    },
+    {
       name: "Restore Clutter",
       icon: "restore",
       color: "bg-gray-100 dark:bg-gray-700",

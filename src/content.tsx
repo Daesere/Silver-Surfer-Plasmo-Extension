@@ -4,6 +4,7 @@ import {
   highlightElement,
   removeHighlights,
   removeClutter,
+  removeFraudPopups,
   restoreClutter,
   magnifyText,
   resetMagnification,
@@ -41,6 +42,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.action === "REMOVE_CLUTTER") {
     const result = removeClutter()
+    sendResponse(result)
+    return true
+  }
+
+  if (request.action === "REMOVE_FRAUD_POPUPS") {
+    const result = removeFraudPopups()
     sendResponse(result)
     return true
   }
